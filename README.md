@@ -1,6 +1,6 @@
 # Rumbo · Centro de aprendizaje
 
-Primera fase funcional: inicio Hoy, panel de cursos/habilidades/proyectos, creación de aprendizajes, pasos, progreso calculado, fechas, duración estimada y reprogramación a mañana. Interfaz en español adaptable a móviles.
+Segunda fase funcional: inicio Hoy, panel de cursos/habilidades/proyectos, planificador semanal, avances parciales con tiempo y notas, revisión semanal, creación de aprendizajes, pasos, progreso calculado, fechas, duración estimada y reprogramación. Interfaz en español adaptable a móviles.
 
 ## Ejecutar
 
@@ -24,7 +24,6 @@ Validación: pruebas automatizadas del progreso, serialización y estructura de 
 
 ## Próximas fases
 
-2. Planificador semanal, registro parcial y revisión de viernes.
 3. Autenticación, base de datos compartida, permisos de solo lectura y privacidad de notas. La persistencia local debe migrarse antes de habilitar acceso familiar.
 4. Validación de los flujos reales en navegador y móvil, y despliegue en Vercel desde GitHub.
 
