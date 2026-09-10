@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-10T18:00:00-06:00",
+  "title": "Design System: Rumbo",
+  "extensions": {
+    "colorMeta": {
+      "action-orange": { "role": "primary", "displayName": "Naranja de avance", "canonical": "#ff4f05", "tonalRamp": ["#ffe4d6", "#ff4f05", "#e84500"] },
+      "focus-indigo": { "role": "secondary", "displayName": "Índigo de orientación", "canonical": "#4c3fd9", "tonalRamp": ["#edebfc", "#4c3fd9", "#3227af"] },
+      "progress-green": { "role": "tertiary", "displayName": "Verde de progreso", "canonical": "#08783e", "tonalRamp": ["#e4f9ee", "#08783e"] },
+      "warm-canvas": { "role": "neutral", "displayName": "Lienzo cálido", "canonical": "#fffefb", "tonalRamp": ["#ffffff", "#fffefb", "#ecece8", "#222222"] }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Dirección", "purpose": "Título principal, cifras y jerarquía de navegación." },
+      "body": { "displayName": "Lectura", "purpose": "Tareas, formularios, ayuda y metadatos." }
+    },
+    "shadows": [
+      { "name": "ambient-low", "value": "0 4px 16px rgba(34,34,34,.06)", "purpose": "Separar superficies del lienzo sin endurecer la interfaz." },
+      { "name": "floating", "value": "0 18px 52px rgba(34,34,34,.16)", "purpose": "Elevar diálogos y avisos temporales." }
+    ],
+    "motion": [
+      { "name": "state", "value": "180ms ease", "purpose": "Cambios de color y borde en controles." },
+      { "name": "lift", "value": "250ms cubic-bezier(.2,.8,.2,1)", "purpose": "Elevación breve de tarjetas y entrada del encabezado." }
+    ],
+    "breakpoints": [
+      { "name": "compact-desktop", "value": "1120px" },
+      { "name": "mobile-navigation", "value": "780px" },
+      { "name": "single-column", "value": "560px" }
+    ],
+    "narrative": {
+      "northStar": "El escritorio de avance",
+      "rules": [
+        "El naranja identifica la acción principal de cada vista.",
+        "La sombra organiza capas y permanece suave.",
+        "La siguiente acción aparece antes que la información secundaria."
+      ],
+      "dos": ["Mantener foco visible y texto de formulario de 16px en teléfono.", "Usar estados semánticos con texto explícito."],
+      "donts": ["No usar degradados ni sombras duras.", "No sustituir iconos SVG por emojis o glifos Unicode."]
+    }
+  },
+  "components": {
+    "button-primary": {
+      "html": "<button class='primary'>Guardar avance</button>",
+      "css": ".primary{border:1px solid #ff4f05;border-radius:999px;background:#ff4f05;color:#241008;padding:11px 18px;font:700 14px Inter,sans-serif}"
+    },
+    "input": {
+      "html": "<label>Nombre<input value='Python desde cero'></label>",
+      "css": "input{padding:11px 13px;border:1px solid #d9d8d3;border-radius:13px;background:#fff;color:#222;font:400 16px Inter,sans-serif}"
+    },
+    "navigation-active": {
+      "html": "<a class='active'>Hoy</a>",
+      "css": ".active{display:inline-flex;padding:11px 14px;border-radius:999px;background:#fff;color:#222;font:700 14px Inter,sans-serif;box-shadow:0 4px 16px rgba(34,34,34,.06)}"
+    }
+  }
+}

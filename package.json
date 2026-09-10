@@ -3,5 +3,5 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "scripts": { "dev": "node server.mjs", "test": "node --test", "check": "node --check public/app.js && node --check public/model.js" }
+  "scripts": { "dev": "node server.mjs", "test": "node --test", "check": "node --check public/app.js && node --check public/model.js && node --check public/cloud.js" }
 }

@@ -42,6 +42,14 @@ export function weekSummary(state, start) {
   return { planned: planned.length, completed: completed.length, minutes: sessions.reduce((sum, session) => sum + session.minutes, 0), daysActive: new Set(sessions.map(session => session.date)).size };
 }
 
+export function sharedState(state) {
+  return {
+    ...state,
+    sessions: state.sessions.map(session => ({ ...session, note: '' })),
+    reviews: state.reviews.map(review => ({ ...review, blockers: '' }))
+  };
+}
+
 export function migrateState(input) {
   if (!input || !Array.isArray(input.projects)) return null;
   if (input.version === 2) return input;
