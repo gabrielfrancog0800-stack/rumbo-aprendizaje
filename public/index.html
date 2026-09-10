@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#142a29"><meta name="description" content="Tu centro de control para aprender, avanzar y organizar tus proyectos.">
+  <title>Rumbo · Mi aprendizaje</title><link rel="icon" href="/icon.svg"><link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <aside class="sidebar"><a class="brand" href="#hoy"><span class="brand-icon">r.</span>rumbo<span class="brand-dot">•</span></a><p class="tagline">UN PASO CADA DÍA</p>
+    <nav aria-label="Navegación principal"><a href="#hoy" data-nav="hoy"><span aria-hidden="true">◉</span> Hoy</a><a href="#panel" data-nav="panel"><span aria-hidden="true">▦</span> Mis aprendizajes</a></nav>
+    <div class="coming"><span>EN LAS PRÓXIMAS FASES</span><p>▤ &nbsp; Mi semana</p><p>◎ &nbsp; Compartir avances</p></div>
+    <div class="sidebar-note"><span class="little-star">✦</span><p>Pequeños pasos.<br><strong>Progreso real.</strong></p></div>
+    <div class="profile"><div class="avatar">T</div><div><strong>Mi espacio</strong><small>Aprendizaje personal</small></div></div>
+  </aside>
+  <main><header class="topbar"><span>MI CENTRO DE CONTROL</span><span id="date-label"></span></header>
+    <div id="storage-warning" class="warning" role="alert" hidden></div>
+    <div id="demo-banner" class="demo-banner"><span><strong>Estás explorando una demo.</strong> Los contenidos son de ejemplo.</span><button id="start-own" class="text-button">Empezar con mis datos ↗</button></div>
+    <section id="view"></section>
+    <footer>Fase 1 · Guardado solo en este navegador <span>Hecho para avanzar a tu ritmo.</span></footer>
+  </main>
+  <dialog id="project-dialog" aria-labelledby="form-title"><form id="project-form"><div class="dialog-heading"><h2 id="form-title">Un nuevo comienzo</h2><button type="button" data-close="project-dialog" class="icon-button" aria-label="Cerrar">×</button></div><p>¿Qué querés aprender o construir?</p><label>Nombre<input name="title" maxlength="100" required placeholder="Ej. Automatizaciones con IA"></label><label>Tipo<select name="type"><option>Curso</option><option>Habilidad</option><option>Proyecto</option></select></label><label>Objetivo<input name="goal" maxlength="240" required placeholder="¿Qué quiero lograr?"></label><label>Pasos o hitos · uno por línea<textarea name="steps" rows="5" required placeholder="Completar la primera lección&#10;Hacer un ejercicio práctico&#10;Crear mi primer proyecto"></textarea></label><p class="help">El progreso se calcula con los pasos que completás.</p><button class="primary" type="submit">Crear aprendizaje</button></form></dialog>
+  <dialog id="detail-dialog" aria-labelledby="detail-title"><div id="detail-content"></div></dialog>
+  <dialog id="reset-dialog" aria-labelledby="reset-title"><h2 id="reset-title">Tu espacio, desde cero</h2><p>Se quitarán los aprendizajes de esta demo, incluidos los cambios que hayas hecho. Después podrás crear los tuyos.</p><div class="dialog-actions"><button class="secondary" data-close="reset-dialog">Seguir explorando</button><button class="primary" id="confirm-reset">Empezar desde cero</button></div></dialog>
+  <div id="toast" class="toast" role="status" hidden></div>
+  <script type="module" src="/app.js"></script>
+</body></html>
