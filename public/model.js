@@ -42,6 +42,16 @@ export function weekSummary(state, start) {
   return { planned: planned.length, completed: completed.length, minutes: sessions.reduce((sum, session) => sum + session.minutes, 0), daysActive: new Set(sessions.map(session => session.date)).size };
 }
 
+export function collaboratorSummary(state, start = weekStart()) {
+  const steps = state.projects.flatMap(project => project.steps);
+  return {
+    active: state.projects.filter(project => progress(project) < 100).length,
+    done: steps.filter(step => step.done).length,
+    total: steps.length,
+    week: weekSummary(state, start)
+  };
+}
+
 export function sharedState(state) {
   return {
     ...state,

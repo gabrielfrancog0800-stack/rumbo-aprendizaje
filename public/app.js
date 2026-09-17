@@ -1,5 +1,5 @@
 import './cloud.js';
-import { addDays, dateFromKey, dayKey, demoState, migrateState, progress, toggleStep, tomorrow, validState, weekDays, weekStart, weekSummary } from './model.js';
+import { addDays, collaboratorSummary, dateFromKey, dayKey, demoState, migrateState, progress, toggleStep, tomorrow, validState, weekDays, weekStart, weekSummary } from './model.js';
 
 const $ = selector => document.querySelector(selector);
 const esc = value => String(value).replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character]);
@@ -25,12 +25,13 @@ let plannerWeek = weekStart();
 let reviewWeek = plannerWeek;
 let toastTimer;
 let searchQuery = '';
-let cloudInfo = { configured: false, authenticated: false, role: null, email: '', workspace: null };
+let cloudInfo = { configured: false, authenticated: false, role: null, email: '', workspace: null, profile: null, team: null, people: [] };
 let syncState = 'local';
 let activeStorageKey = storageKey;
 let authTransition = false;
+let adminPerson = null;
 
-const isReadOnly = () => cloudInfo.role === 'viewer';
+const isReadOnly = () => cloudInfo.role === 'admin';
 const editableButton = html => isReadOnly() ? '' : html;
 
 try {
@@ -54,7 +55,7 @@ function save() {
       $('#storage-warning').textContent = 'No se pudieron guardar los cambios. Permanecerán solo durante esta sesión.';
     }
   }
-  if (cloudInfo.role === 'owner') {
+  if (cloudInfo.role === 'collaborator') {
     const pendingKey = `rumbo.pending.${cloudInfo.workspace.id}`;
     localStorage.setItem(pendingKey, String(Date.now()));
     syncState = 'saving';
@@ -83,7 +84,8 @@ function resetToAnonymous() {
   activeStorageKey = scopedStorageKey();
   state = demoState();
   if (!storageBlocked) localStorage.setItem(activeStorageKey, JSON.stringify(state));
-  cloudInfo = { configured: true, authenticated: false, role: null, email: '', workspace: null };
+  cloudInfo = { configured: true, authenticated: false, role: null, email: '', workspace: null, profile: null, team: null, people: [] };
+  adminPerson = null;
   syncState = 'local';
   render();
 }
@@ -149,11 +151,32 @@ function renderSearch() {
   return pageHeading('', `Resultados para “${esc(searchQuery.trim())}”`, `${projects.length + steps.length} coincidencias`) + `<section class="search-results"><div><h2>Aprendizajes</h2><div class="project-grid">${projects.map(projectCard).join('') || '<p class="muted-copy">No encontramos aprendizajes con ese texto.</p>'}</div></div><div><h2>Pasos</h2><div class="task-list">${steps.slice(0, 50).map(step => taskRow(step, step.project, true)).join('') || '<p class="muted-copy">No encontramos pasos con ese texto.</p>'}</div></div></section>`;
 }
 
-function renderShare() {
-  if (!cloudInfo.configured) return pageHeading('', 'Compartir avances', 'La sincronización estará disponible cuando conectemos el almacenamiento del sitio.', '') + `<section class="cloud-panel"><div class="cloud-visual indigo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v16m-5-5 5 5 5-5M5 9V6a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v3"/></svg></div><div><h2>Preparando la nube</h2><p>Podés seguir usando Rumbo en este dispositivo. Tus datos locales no se perderán al conectar tu cuenta.</p></div></section>`;
-  if (!cloudInfo.authenticated) return pageHeading('', 'Compartir avances', 'Iniciá sesión para sincronizar tus datos y dar acceso de solo lectura.', '<button class="primary" data-action="account">Crear cuenta o entrar</button>') + `<section class="share-grid"><article><span class="status-badge info">SINCRONIZACIÓN</span><h2>Tus avances en todos tus dispositivos</h2><p>La primera vez que entrés, Rumbo subirá de forma segura los datos guardados en este navegador.</p></article><article><span class="status-badge success">SOLO LECTURA</span><h2>Una vista clara para tu familia</h2><p>Tu familiar verá proyectos, progreso y planificación. Tus notas personales y obstáculos seguirán siendo privados.</p><button class="secondary" data-action="join">Ya tengo un código</button></article></section>`;
-  if (cloudInfo.role === 'viewer') return pageHeading('', 'Avances compartidos', `Estás viendo el espacio “${esc(cloudInfo.workspace?.name || 'Mi aprendizaje')}”.`, '') + `<section class="readonly-banner"><span class="status-badge info">SOLO LECTURA</span><div><h2>Vista familiar activa</h2><p>Podés consultar el progreso y la planificación. Las notas privadas y los controles de edición no están disponibles.</p></div></section>`;
-  return pageHeading('', 'Compartir avances', 'Invitá a tu papá u otro familiar con acceso de solo lectura.', '') + `<section class="invite-panel"><div><span class="status-badge success">ESPACIO SINCRONIZADO</span><h2>Tu código de invitación</h2><p>Compartí este código con la persona que querés invitar. Necesitará crear su propia cuenta.</p><div class="invite-code"><strong>${esc(cloudInfo.workspace?.share_code || '')}</strong><button class="primary" data-action="copy-code">Copiar código</button></div><button class="text-button" data-action="renew-code">Generar un código nuevo</button></div><aside><h3>Lo que verá</h3><ul><li>Progreso de cursos y proyectos</li><li>Pasos completados y pendientes</li><li>Planificación semanal</li><li>Tiempo total registrado</li></ul><h3>Siempre privado</h3><ul class="private-list"><li>Notas de cada sesión</li><li>Obstáculos de la revisión</li><li>Controles para editar</li></ul></aside></section>`;
+function personSummary(person) {
+  const personState = person.data && validState(person.data) ? person.data : { projects: [], sessions: [], reviews: [] };
+  return { state: personState, ...collaboratorSummary(personState) };
+}
+
+function renderTeam() {
+  if (!cloudInfo.configured) return pageHeading('', 'Equipo', 'El seguimiento estará disponible cuando conectemos el almacenamiento.', '');
+  if (!cloudInfo.authenticated) return pageHeading('', 'Equipo', 'Iniciá sesión para acceder a tu espacio de trabajo.', '<button class="primary" data-action="account">Entrar</button>');
+  if (cloudInfo.role !== 'admin') {
+    const status = cloudInfo.team ? `<span class="status-badge success">CONECTADO</span><h2>${esc(cloudInfo.team.name)}</h2><p>Tu administrador puede consultar tus avances compartidos. Tus notas y obstáculos personales permanecen privados.</p>` : '<span class="status-badge info">ESPACIO PERSONAL</span><h2>Aún no pertenecés a un equipo</h2><p>Cuando recibas una invitación, abrí el enlace e iniciá sesión. No tendrás que escribir códigos.</p>';
+    return pageHeading('', 'Mi equipo', 'Tu aprendizaje es tuyo; el seguimiento compartido es simple y transparente.', '') + `<section class="cloud-panel"><div>${status}</div></section>`;
+  }
+  if (adminPerson) {
+    const summary = personSummary(adminPerson);
+    state = summary.state;
+    return pageHeading('', esc(adminPerson.full_name || adminPerson.email), esc(adminPerson.position || 'Colaborador'), '<button class="secondary" data-action="admin-back">Volver al equipo</button>') +
+      `<div class="stats"><div><span>Aprendizajes activos</span><strong>${summary.active}<small>en marcha</small></strong></div><div><span>Pasos completados</span><strong>${summary.done}<small>de ${summary.total}</small></strong></div><div><span>Esta semana</span><strong>${summary.week.completed}/${summary.week.planned}<small>pasos completados</small></strong></div></div>` +
+      `<section class="learning-section"><div class="section-heading"><h2>Aprendizajes</h2><span>Actualizado ${adminPerson.updated_at ? new Intl.DateTimeFormat('es', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(adminPerson.updated_at)) : 'sin actividad todavía'}</span></div><div class="project-grid">${state.projects.map(projectCard).join('') || '<p class="muted-copy">Todavía no registró aprendizajes.</p>'}</div></section>`;
+  }
+  const cards = cloudInfo.people.map(person => {
+    const summary = personSummary(person);
+    const percent = summary.total ? Math.round(summary.done / summary.total * 100) : 0;
+    return `<button class="person-card" data-action="admin-person" data-user="${esc(person.user_id)}"><div class="person-avatar">${esc((person.full_name || person.email || '?')[0].toUpperCase())}</div><div><h3>${esc(person.full_name || person.email)}</h3><p>${esc(person.position || 'Sin puesto definido')}</p><span>${summary.active} aprendizajes activos · ${summary.week.completed}/${summary.week.planned} esta semana</span></div><strong>${percent}%</strong></button>`;
+  }).join('');
+  return pageHeading('', cloudInfo.team?.name || 'Equipo', 'Una vista clara del avance de cada colaborador.', '<button class="primary" data-action="team-invite">Invitar colaborador</button>') +
+    `<section class="team-overview"><div class="section-heading"><h2>Colaboradores <span class="count">${cloudInfo.people.length}</span></h2><span>Solo se muestran avances compartidos</span></div><div class="people-list">${cards || '<div class="empty"><h3>Tu equipo todavía está vacío</h3><p>Invitá al primer colaborador con un enlace privado.</p></div>'}</div></section>`;
 }
 
 function plannerTask(step, project) {
@@ -181,15 +204,17 @@ function renderWeek() {
 }
 
 function render() {
-  const route = location.hash === '#panel' ? 'panel' : location.hash === '#semana' ? 'semana' : location.hash === '#compartir' ? 'compartir' : 'hoy';
+  let route = location.hash === '#panel' ? 'panel' : location.hash === '#semana' ? 'semana' : location.hash === '#equipo' ? 'equipo' : 'hoy';
+  if (cloudInfo.role === 'admin') route = 'equipo';
+  document.querySelectorAll('[data-collaborator]').forEach(element => { element.hidden = cloudInfo.role === 'admin'; });
   document.querySelectorAll('[data-nav]').forEach(link => {
     const active = link.dataset.nav === route;
     link.classList.toggle('active', active);
     if (active) link.setAttribute('aria-current', 'page'); else link.removeAttribute('aria-current');
   });
   $('#date-label').textContent = new Intl.DateTimeFormat('es', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date());
-  $('#demo-banner').hidden = !state.demo;
-  $('#view').innerHTML = searchQuery.trim() ? renderSearch() : route === 'panel' ? renderPanel() : route === 'semana' ? renderWeek() : route === 'compartir' ? renderShare() : renderToday();
+  $('#demo-banner').hidden = cloudInfo.role === 'admin' || !state.demo;
+  $('#view').innerHTML = searchQuery.trim() && cloudInfo.role !== 'admin' ? renderSearch() : route === 'panel' ? renderPanel() : route === 'semana' ? renderWeek() : route === 'equipo' ? renderTeam() : renderToday();
   if (!searchQuery.trim() && route === 'semana' && plannerWeek === weekStart()) requestAnimationFrame(() => {
     const board = $('.week-board');
     const today = board?.querySelector('.is-today');
@@ -267,27 +292,45 @@ function updateCloudUi() {
     return;
   }
   const messages = { saving: 'Sincronizando…', error: 'Revisar conexión', synced: 'Sincronizado', local: 'Conectado' };
-  status.querySelector('strong').textContent = isReadOnly() ? 'Vista familiar' : messages[syncState] || 'Sincronizado';
-  status.setAttribute('aria-label', isReadOnly() ? 'Abrir cuenta: vista familiar de solo lectura' : `Abrir cuenta: ${messages[syncState] || 'Sincronizado'}`);
-  label.textContent = isReadOnly() ? 'Acceso de solo lectura' : 'Guardado en la nube';
-  profileName.textContent = cloudInfo.email?.split('@')[0] || 'Mi cuenta';
-  avatar.textContent = (cloudInfo.email?.[0] || 'T').toUpperCase();
+  status.querySelector('strong').textContent = cloudInfo.role === 'admin' ? 'Panel de equipo' : messages[syncState] || 'Sincronizado';
+  status.setAttribute('aria-label', cloudInfo.role === 'admin' ? 'Abrir cuenta de administrador' : `Abrir cuenta: ${messages[syncState] || 'Sincronizado'}`);
+  label.textContent = cloudInfo.role === 'admin' ? 'Administrador' : 'Guardado en la nube';
+  profileName.textContent = cloudInfo.profile?.full_name || cloudInfo.email?.split('@')[0] || 'Mi cuenta';
+  avatar.textContent = (cloudInfo.profile?.full_name?.[0] || cloudInfo.email?.[0] || 'T').toUpperCase();
 }
 
-function renderAccountContent(message = '', email = '') {
+function renderAccountContent(message = '', email = '', mode = 'signin') {
   const container = $('#account-content');
   if (!cloudInfo.configured) {
     container.innerHTML = '<div class="account-state"><span class="status-badge info">PRÓXIMAMENTE</span><h3>Sincronización en preparación</h3><p>Podés seguir usando Rumbo normalmente. Tus datos están guardados en este dispositivo.</p></div>';
     return;
   }
   if (!cloudInfo.authenticated) {
-    container.innerHTML = `${message ? `<div class="inline-message">${esc(message)}</div>` : ''}<form id="auth-form"><label>Correo electrónico<input type="email" name="email" autocomplete="email" maxlength="254" required placeholder="tu@correo.com" value="${esc(email)}"></label><label>Contraseña<input type="password" name="password" autocomplete="current-password" minlength="8" maxlength="72" required placeholder="Mínimo 8 caracteres"></label><div class="dialog-actions split"><button class="secondary" type="submit" value="signup">Crear cuenta</button><button class="primary" type="submit" value="signin">Entrar</button></div><p class="help">Al entrar por primera vez, tus datos actuales se sincronizarán con tu cuenta.</p></form>`;
+    const notice = message ? `<div class="inline-message">${esc(message)}</div>` : '';
+    if (mode === 'signup') {
+      container.innerHTML = `${notice}<form id="signup-form"><label>Nombre completo<input name="fullName" autocomplete="name" maxlength="100" required placeholder="Tu nombre"></label><label>Puesto<input name="position" autocomplete="organization-title" maxlength="100" required placeholder="Ej. Diseñador, desarrollador, ventas"></label><label>Correo electrónico<input type="email" name="email" autocomplete="email" maxlength="254" required placeholder="tu@correo.com" value="${esc(email)}"></label><label>Contraseña<input type="password" name="password" autocomplete="new-password" minlength="8" maxlength="72" required placeholder="Mínimo 8 caracteres"></label><button class="primary" type="submit">Crear mi cuenta</button><button class="text-button" type="button" data-action="show-signin">Ya tengo cuenta</button></form>`;
+    } else {
+      container.innerHTML = `${notice}<form id="signin-form"><label>Correo electrónico<input type="email" name="email" autocomplete="email" maxlength="254" required placeholder="tu@correo.com" value="${esc(email)}"></label><label>Contraseña<input type="password" name="password" autocomplete="current-password" minlength="8" maxlength="72" required placeholder="Tu contraseña"></label><button class="primary" type="submit">Entrar</button><button class="text-button" type="button" data-action="show-signup">Crear una cuenta</button></form>`;
+    }
     return;
   }
-  container.innerHTML = `<div class="account-state"><span class="status-badge ${isReadOnly() ? 'info' : 'success'}">${isReadOnly() ? 'FAMILIAR' : 'PROPIETARIO'}</span><h3>${esc(cloudInfo.email)}</h3><p>${isReadOnly() ? 'Podés consultar el progreso compartido, sin editarlo.' : 'Tus cambios se guardan en la nube y se mantienen sincronizados.'}</p><button class="secondary" data-action="signout">Cerrar sesión</button>${isReadOnly() ? '<button class="text-button" data-action="switch-owner">Volver a mi espacio</button>' : '<button class="text-button" data-action="join">Usar un código de invitación</button>'}</div>`;
+  if (!cloudInfo.profile?.full_name) {
+    container.innerHTML = '<div class="inline-message">Completá tu perfil para que el equipo pueda identificarte.</div><form id="profile-form"><label>Nombre completo<input name="fullName" autocomplete="name" maxlength="100" required placeholder="Tu nombre"></label><label>Puesto<input name="position" autocomplete="organization-title" maxlength="100" required placeholder="Ej. Diseñador, desarrollador, ventas"></label><button class="primary" type="submit">Guardar perfil</button></form>';
+    return;
+  }
+  container.innerHTML = `<div class="account-state"><span class="status-badge ${cloudInfo.role === 'admin' ? 'info' : 'success'}">${cloudInfo.role === 'admin' ? 'ADMINISTRADOR' : 'COLABORADOR'}</span><h3>${esc(cloudInfo.profile?.full_name || cloudInfo.email)}</h3><p>${cloudInfo.role === 'admin' ? 'Podés consultar el progreso compartido de tu equipo.' : 'Tus cambios se guardan en la nube y tus notas privadas siguen siendo tuyas.'}</p><button class="secondary" data-action="signout">Cerrar sesión</button></div>`;
 }
 
 function applyCloudWorkspace(result) {
+  cloudInfo = { configured: true, authenticated: true, role: result.role, email: result.email, workspace: result.workspace, profile: result.profile, team: result.team, people: result.people || [] };
+  if (result.role === 'admin') {
+    adminPerson = null;
+    syncState = 'synced';
+    location.hash = 'equipo';
+    render();
+    if (!result.profile?.full_name) { renderAccountContent(); $('#account-dialog').showModal(); }
+    return;
+  }
   const workspaceStorageKey = scopedStorageKey(result.workspace.id);
   const pendingKey = `rumbo.pending.${result.workspace.id}`;
   let candidate = result.state;
@@ -300,10 +343,10 @@ function applyCloudWorkspace(result) {
   const incoming = migrateState(candidate);
   if (incoming && validState(incoming)) state = incoming;
   activeStorageKey = workspaceStorageKey;
-  cloudInfo = { configured: true, authenticated: true, role: result.role, email: result.email, workspace: result.workspace };
-  syncState = localStorage.getItem(pendingKey) && result.role === 'owner' ? 'saving' : 'synced';
+  syncState = localStorage.getItem(pendingKey) && result.role === 'collaborator' ? 'saving' : 'synced';
   if (!storageBlocked) localStorage.setItem(activeStorageKey, JSON.stringify(state));
   if (syncState === 'saving') save(); else render();
+  if (!result.profile?.full_name) { renderAccountContent(); $('#account-dialog').showModal(); }
 }
 
 async function loadCloudWorkspace() {
@@ -342,10 +385,11 @@ document.addEventListener('click', event => {
   const button = event.target.closest('[data-action]');
   if (!button) return;
   const { action, project, step } = button.dataset;
-  const writeActions = ['new', 'toggle', 'tomorrow', 'log', 'plan', 'plan-date', 'plan-step', 'review', 'renew-code'];
+  const writeActions = ['new', 'toggle', 'tomorrow', 'log', 'plan', 'plan-date', 'plan-step', 'review'];
   if (isReadOnly() && writeActions.includes(action)) { toast('Este acceso es de solo lectura.'); return; }
   if (action === 'account') { renderAccountContent(); $('#account-dialog').showModal(); return; }
-  if (action === 'join') { $('#account-dialog').close(); $('#join-dialog').showModal(); return; }
+  if (action === 'show-signup') { renderAccountContent('', '', 'signup'); return; }
+  if (action === 'show-signin') { renderAccountContent(); return; }
   if (action === 'signout') {
     button.disabled = true;
     button.setAttribute('aria-busy', 'true');
@@ -353,23 +397,19 @@ document.addEventListener('click', event => {
     window.RumboCloud.signOut().then(() => { $('#account-dialog').close(); resetToAnonymous(); toast('Sesión cerrada'); }).catch(() => { button.disabled = false; button.removeAttribute('aria-busy'); toast('No pudimos cerrar la sesión. Intentá de nuevo.'); }).finally(() => { authTransition = false; });
     return;
   }
-  if (action === 'switch-owner') {
+  if (action === 'team-invite') {
     button.disabled = true;
-    button.setAttribute('aria-busy', 'true');
-    window.RumboCloud.switchToOwned(state).then(result => {
-      applyCloudWorkspace(result);
-      $('#account-dialog').close();
-      toast('Volviste a tu espacio personal');
-    }).catch(() => { button.disabled = false; button.removeAttribute('aria-busy'); toast('No pudimos abrir tu espacio personal.'); });
+    window.RumboCloud.createInvite().then(link => navigator.clipboard.writeText(link)).then(() => toast('Enlace de invitación copiado')).catch(() => { toast('No pudimos crear la invitación.'); }).finally(() => { button.disabled = false; });
     return;
   }
-  if (action === 'copy-code') {
-    navigator.clipboard?.writeText(cloudInfo.workspace.share_code).then(() => toast('Código copiado')).catch(() => toast(`Código: ${cloudInfo.workspace.share_code}`));
+  if (action === 'admin-person') {
+    adminPerson = cloudInfo.people.find(person => person.user_id === button.dataset.user) || null;
+    render();
     return;
   }
-  if (action === 'renew-code') {
-    button.disabled = true;
-    window.RumboCloud.renewCode().then(workspace => { cloudInfo.workspace = workspace; render(); toast('Código renovado. El anterior dejó de funcionar.'); }).catch(() => { button.disabled = false; toast('No pudimos renovar el código. Intentá de nuevo.'); });
+  if (action === 'admin-back') {
+    adminPerson = null;
+    render();
     return;
   }
   if (action === 'new') { $('#project-dialog').showModal(); return; }
@@ -438,44 +478,40 @@ $('#review-form').addEventListener('submit', event => {
 });
 
 $('#account-content').addEventListener('submit', async event => {
-  if (event.target.id !== 'auth-form') return;
+  if (!['signin-form', 'signup-form', 'profile-form'].includes(event.target.id)) return;
   event.preventDefault();
-  const submitter = event.submitter;
   const data = new FormData(event.target);
+  if (event.target.id === 'profile-form') {
+    const button = event.target.querySelector('button');
+    button.disabled = true;
+    try {
+      const updated = await window.RumboCloud.updateProfile(data.get('fullName').trim(), data.get('position').trim());
+      cloudInfo.profile = updated.profile;
+      cloudInfo.team = updated.team;
+      $('#account-dialog').close();
+      render();
+      toast('Perfil actualizado');
+    } catch { button.disabled = false; toast('No pudimos guardar tu perfil.'); }
+    return;
+  }
   const email = data.get('email').trim();
   const buttons = event.target.querySelectorAll('button');
   buttons.forEach(button => { button.disabled = true; });
   event.target.setAttribute('aria-busy', 'true');
   authTransition = true;
   try {
-    if (submitter.value === 'signup') {
-      const result = await window.RumboCloud.signUp(email, data.get('password'));
-      if (result.needsConfirmation) { renderAccountContent('Revisá tu correo y confirmá la cuenta. Después podrás entrar.', email); return; }
+    if (event.target.id === 'signup-form') {
+      const result = await window.RumboCloud.signUp({ fullName: data.get('fullName').trim(), position: data.get('position').trim(), email, password: data.get('password') });
+      if (result.needsConfirmation) { renderAccountContent('Te enviamos un correo de confirmación. Cuando lo abras, volvé aquí para entrar.', email); return; }
     } else await window.RumboCloud.signIn(email, data.get('password'));
     await loadCloudWorkspace();
     $('#account-dialog').close();
     toast('Tu cuenta está conectada');
   } catch (error) {
-    renderAccountContent(error.message.includes('Invalid login') ? 'El correo o la contraseña no coinciden.' : 'No pudimos completar el acceso. Revisá los datos e intentá de nuevo.', email);
+    const message = error.message.includes('Email not confirmed') ? 'Confirmá tu correo antes de entrar.' : error.message.includes('Invalid login') ? 'El correo o la contraseña no coinciden.' : 'No pudimos completar el acceso. Revisá los datos e intentá de nuevo.';
+    renderAccountContent(message, email, event.target.id === 'signup-form' ? 'signup' : 'signin');
   } finally {
     authTransition = false;
-  }
-});
-
-$('#join-form').addEventListener('submit', async event => {
-  event.preventDefault();
-  if (!cloudInfo.authenticated) { $('#join-dialog').close(); renderAccountContent('Primero iniciá sesión y luego ingresá el código.'); $('#account-dialog').showModal(); return; }
-  const button = event.target.querySelector('button[type="submit"]');
-  button.disabled = true;
-  event.target.setAttribute('aria-busy', 'true');
-  try {
-    const result = await window.RumboCloud.join(new FormData(event.target).get('code'), state);
-    applyCloudWorkspace(result);
-    $('#join-dialog').close(); event.target.reset(); location.hash = 'hoy'; render(); toast('Ya podés ver los avances compartidos');
-  } catch {
-    button.disabled = false;
-    event.target.removeAttribute('aria-busy');
-    toast('El código no es válido o ya no está activo.');
   }
 });
 
@@ -522,6 +558,12 @@ window.addEventListener('storage', event => {
     if (validState(incoming)) { state = incoming; render(); if ($('#detail-dialog').open) state.projects.some(project => project.id === activeProject) ? drawDetail() : $('#detail-dialog').close(); }
   } catch { /* Un cambio inválido de otra pestaña se ignora. */ }
 });
+
+const pendingInvite = new URLSearchParams(location.search).get('invite');
+if (pendingInvite) {
+  window.RumboCloud.rememberInvite(pendingInvite);
+  history.replaceState(null, '', location.pathname + location.hash);
+}
 
 render();
 initializeCloud();
