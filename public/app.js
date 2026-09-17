@@ -289,6 +289,8 @@ function updateCloudUi() {
     status.querySelector('strong').textContent = 'Conectar cuenta';
     status.setAttribute('aria-label', 'Abrir cuenta: conectar cuenta');
     label.textContent = 'Sin sincronizar';
+    profileName.textContent = 'Mi espacio';
+    avatar.textContent = 'T';
     return;
   }
   const messages = { saving: 'Sincronizando…', error: 'Revisar conexión', synced: 'Sincronizado', local: 'Conectado' };
