@@ -1,6 +1,6 @@
 # Rumbo · Centro de aprendizaje
 
-Centro de aprendizaje con inicio Hoy, cursos/habilidades/proyectos, planificación semanal, avances parciales, revisión, cuentas y sincronización. Incluye un panel de equipo para que un administrador consulte el progreso compartido de sus colaboradores sin acceder a notas privadas.
+Centro de aprendizaje con una vista Hoy enfocada, cursos/habilidades/proyectos, avances parciales, cuentas y sincronización. Incluye un panel de equipo para que un administrador consulte el progreso compartido de sus colaboradores sin acceder a notas privadas.
 
 ## Ejecutar
 

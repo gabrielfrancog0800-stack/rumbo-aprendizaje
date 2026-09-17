@@ -20,12 +20,12 @@ El progreso se calcula a partir de pasos completados y sesiones registradas, y l
 
 ## Operating Context
 
-Uso personal frecuente desde teléfono y computadora. Los viernes se revisa la semana y se planifica la siguiente. El panel administrativo se consulta cuando se necesita seguimiento y es de solo lectura.
+Uso personal frecuente desde teléfono y computadora. El colaborador consulta su siguiente paso y asigna fechas desde cada aprendizaje. El panel administrativo se consulta cuando se necesita seguimiento y es de solo lectura.
 
 ## Capabilities and Constraints
 
 - Cursos, habilidades y proyectos con objetivos, pasos y progreso calculado.
-- Vista Hoy, planificador semanal, avances parciales y revisión semanal.
+- Vista Hoy, aprendizajes con pasos fechados y avances parciales.
 - Cuenta personal con nombre y puesto, sincronización entre dispositivos y panel administrativo de solo lectura.
 - Equipos con dos roles: administrador y colaborador.
 - En esta primera versión, cada cuenta pertenece a un solo equipo.
@@ -36,7 +36,7 @@ Uso personal frecuente desde teléfono y computadora. Los viernes se revisa la s
 
 ## Brand Commitments
 
-El producto se llama Rumbo. El nuevo lenguaje visual debe seguir la skill Warehouse SaaS UI: base crema, naranja para acciones primarias, índigo para información destacada, estados semánticos, geometría redondeada y jerarquía tipográfica fuerte.
+El producto se llama Rumbo. Su lenguaje visual sigue principios inspirados en las Human Interface Guidelines de Apple: fuente del sistema, superficies neutrales, un solo acento azul, navegación por rol y divulgación progresiva.
 
 ## Evidence on Hand
 
