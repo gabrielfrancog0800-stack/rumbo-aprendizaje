@@ -8,7 +8,7 @@ web
 
 ## Users
 
-El usuario principal organiza sus cursos, habilidades y proyectos de aprendizaje. Un familiar, inicialmente su papá, puede consultar el progreso compartido sin modificarlo ni acceder a notas privadas.
+Cada colaborador organiza sus cursos, habilidades y proyectos. Un administrador, inicialmente el papá del usuario, consulta el progreso compartido de todo el equipo sin modificarlo ni acceder a notas privadas.
 
 ## Product Purpose
 
@@ -20,13 +20,16 @@ El progreso se calcula a partir de pasos completados y sesiones registradas, y l
 
 ## Operating Context
 
-Uso personal frecuente desde teléfono y computadora. Los viernes se revisa la semana y se planifica la siguiente. La vista familiar se consulta de forma ocasional y es de solo lectura.
+Uso personal frecuente desde teléfono y computadora. Los viernes se revisa la semana y se planifica la siguiente. El panel administrativo se consulta cuando se necesita seguimiento y es de solo lectura.
 
 ## Capabilities and Constraints
 
 - Cursos, habilidades y proyectos con objetivos, pasos y progreso calculado.
 - Vista Hoy, planificador semanal, avances parciales y revisión semanal.
-- Cuenta personal, sincronización entre dispositivos y acceso familiar de solo lectura.
+- Cuenta personal con nombre y puesto, sincronización entre dispositivos y panel administrativo de solo lectura.
+- Equipos con dos roles: administrador y colaborador.
+- En esta primera versión, cada cuenta pertenece a un solo equipo.
+- Invitaciones mediante enlaces privados de un solo uso.
 - Las notas de avance son privadas y no deben enviarse a usuarios familiares.
 - Repositorio privado en GitHub y despliegue en Vercel.
 - Interfaz y mensajes en español.
@@ -44,5 +47,5 @@ Existe una implementación funcional de las fases 1 y 2 en este repositorio. No 
 - Registrar un avance debe tomar pocos segundos.
 - Mostrar la siguiente acción antes que información secundaria.
 - Calcular el progreso a partir de hechos, no de porcentajes escritos manualmente.
-- Mantener las notas personales privadas y hacer explícito qué ve el familiar.
+- Mantener las notas personales privadas y hacer explícito qué ve el administrador.
 - Diseñar primero para la práctica diaria en teléfono y computadora.
