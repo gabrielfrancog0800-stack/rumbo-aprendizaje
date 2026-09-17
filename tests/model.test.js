@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {addDays, progress, sharedState, toggleStep, demoState, migrateState, validState, dayKey, weekStart, weekSummary} from '../public/model.js';
+import {addDays, collaboratorSummary, progress, sharedState, toggleStep, demoState, migrateState, validState, dayKey, weekStart, weekSummary} from '../public/model.js';
 test('completar y deshacer actualiza progreso sin alterar el estado anterior',()=>{
   const initial={projects:[{id:'p',steps:[{id:'a',done:false},{id:'b',done:false}]}]};
   const updated=toggleStep(initial,'p','a','2026-09-10T12:00:00Z');
@@ -45,4 +45,10 @@ test('la vista compartida elimina notas y obstáculos privados',()=>{
   assert.equal(state.sessions[0].note,'nota privada');
   assert.equal(state.reviews[0].blockers,'privado');
   assert.equal(validState(shared),true);
+});
+test('resume el avance de un colaborador para el panel administrador',()=>{
+  const state=demoState();
+  const summary=collaboratorSummary(state,weekStart());
+  assert.deepEqual({active:summary.active,done:summary.done,total:summary.total},{active:3,done:3,total:11});
+  assert.equal(summary.week.planned>=3,true);
 });
