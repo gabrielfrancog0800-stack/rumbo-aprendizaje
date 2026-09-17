@@ -315,7 +315,7 @@ function renderAccountContent(message = '', email = '', mode = 'signin') {
     return;
   }
   if (!cloudInfo.profile?.full_name) {
-    container.innerHTML = '<div class="inline-message">Completá tu perfil para que el equipo pueda identificarte.</div><form id="profile-form"><label>Nombre completo<input name="fullName" autocomplete="name" maxlength="100" required placeholder="Tu nombre"></label><label>Puesto<input name="position" autocomplete="organization-title" maxlength="100" required placeholder="Ej. Diseñador, desarrollador, ventas"></label><button class="primary" type="submit">Guardar perfil</button></form>';
+    container.innerHTML = '<div class="inline-message">Completá tu perfil para que el equipo pueda identificarte.</div><form id="profile-form"><label>Nombre completo<input name="fullName" autocomplete="name" maxlength="100" required placeholder="Tu nombre"></label><label>Puesto<input name="position" autocomplete="organization-title" maxlength="100" required placeholder="Ej. Diseñador, desarrollador, ventas"></label><button class="primary" type="submit">Guardar perfil</button></form><button class="text-button" data-action="signout">Cerrar sesión</button>';
     return;
   }
   container.innerHTML = `<div class="account-state"><span class="status-badge ${cloudInfo.role === 'admin' ? 'info' : 'success'}">${cloudInfo.role === 'admin' ? 'ADMINISTRADOR' : 'COLABORADOR'}</span><h3>${esc(cloudInfo.profile?.full_name || cloudInfo.email)}</h3><p>${cloudInfo.role === 'admin' ? 'Podés consultar el progreso compartido de tu equipo.' : 'Tus cambios se guardan en la nube y tus notas privadas siguen siendo tuyas.'}</p><button class="secondary" data-action="signout">Cerrar sesión</button></div>`;
