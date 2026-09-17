@@ -47,20 +47,6 @@ create table if not exists public.team_invites (
   claimed_at timestamptz
 );
 
-create table if not exists public.workspace_invites (
-  workspace_id uuid primary key references public.workspaces(id) on delete cascade,
-  share_code text not null unique check (char_length(share_code) between 8 and 32),
-  updated_at timestamptz not null default now()
-);
-
-create table if not exists public.workspace_members (
-  workspace_id uuid not null references public.workspaces(id) on delete cascade,
-  user_id uuid not null references auth.users(id) on delete cascade,
-  role text not null default 'viewer' check (role = 'viewer'),
-  created_at timestamptz not null default now(),
-  primary key (workspace_id, user_id)
-);
-
 create table if not exists public.private_states (
   workspace_id uuid primary key references public.workspaces(id) on delete cascade,
   data jsonb not null,
@@ -75,8 +61,6 @@ create table if not exists public.shared_states (
 
 alter table public.profiles enable row level security;
 alter table public.workspaces enable row level security;
-alter table public.workspace_invites enable row level security;
-alter table public.workspace_members enable row level security;
 alter table public.private_states enable row level security;
 alter table public.shared_states enable row level security;
 alter table public.teams enable row level security;
@@ -140,17 +124,11 @@ grant execute on function public.can_admin_view_workspace(uuid) to authenticated
 drop policy if exists "profiles self read" on public.profiles;
 drop policy if exists "profiles self update" on public.profiles;
 drop policy if exists "workspace owner read" on public.workspaces;
-drop policy if exists "workspace member read" on public.workspaces;
 drop policy if exists "workspace owner insert" on public.workspaces;
 drop policy if exists "workspace owner update" on public.workspaces;
 drop policy if exists "workspace owner delete" on public.workspaces;
-drop policy if exists "owner invite access" on public.workspace_invites;
-drop policy if exists "member self read" on public.workspace_members;
-drop policy if exists "owner reads members" on public.workspace_members;
-drop policy if exists "owner removes members" on public.workspace_members;
 drop policy if exists "owner private state" on public.private_states;
 drop policy if exists "owner shared state" on public.shared_states;
-drop policy if exists "member shared state read" on public.shared_states;
 drop policy if exists "team admin profile read" on public.profiles;
 drop policy if exists "team member read" on public.teams;
 drop policy if exists "team admin update" on public.teams;
@@ -163,20 +141,9 @@ create policy "profiles self read" on public.profiles for select using (id = aut
 create policy "team admin profile read" on public.profiles for select using (public.is_team_colleague(id));
 
 create policy "workspace owner read" on public.workspaces for select using (owner_id = auth.uid());
-create policy "workspace member read" on public.workspaces for select using (
-  exists (select 1 from public.workspace_members m where m.workspace_id = id and m.user_id = auth.uid())
-);
 create policy "workspace owner insert" on public.workspaces for insert with check (owner_id = auth.uid());
 create policy "workspace owner update" on public.workspaces for update using (owner_id = auth.uid()) with check (owner_id = auth.uid());
 create policy "workspace owner delete" on public.workspaces for delete using (owner_id = auth.uid());
-
-create policy "owner invite access" on public.workspace_invites for all
-using (public.is_workspace_owner(workspace_id))
-with check (public.is_workspace_owner(workspace_id));
-
-create policy "member self read" on public.workspace_members for select using (user_id = auth.uid());
-create policy "owner reads members" on public.workspace_members for select using (public.is_workspace_owner(workspace_id));
-create policy "owner removes members" on public.workspace_members for delete using (public.is_workspace_owner(workspace_id));
 
 create policy "owner private state" on public.private_states for all
 using (public.is_workspace_owner(workspace_id))
@@ -185,9 +152,6 @@ with check (public.is_workspace_owner(workspace_id));
 create policy "owner shared state" on public.shared_states for all
 using (public.is_workspace_owner(workspace_id))
 with check (public.is_workspace_owner(workspace_id));
-create policy "member shared state read" on public.shared_states for select using (
-  exists (select 1 from public.workspace_members m where m.workspace_id = workspace_id and m.user_id = auth.uid())
-);
 create policy "team admin shared state read" on public.shared_states for select using (public.can_admin_view_workspace(workspace_id));
 
 create policy "team member read" on public.teams for select using (
@@ -218,31 +182,6 @@ $$;
 drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created after insert or update of email on auth.users
 for each row execute procedure public.handle_new_user();
-
-create or replace function public.join_workspace(invite_code text)
-returns table (workspace_id uuid, workspace_name text)
-language plpgsql security definer set search_path = public as $$
-declare
-  target_workspace_id uuid;
-  target_owner_id uuid;
-  target_name text;
-begin
-  if auth.uid() is null then raise exception 'AUTH_REQUIRED'; end if;
-  select w.id, w.owner_id, w.name into target_workspace_id, target_owner_id, target_name
-  from public.workspace_invites i
-  join public.workspaces w on w.id = i.workspace_id
-  where upper(i.share_code) = upper(trim(invite_code));
-  if target_workspace_id is null then raise exception 'INVALID_CODE'; end if;
-  if target_owner_id = auth.uid() then raise exception 'ALREADY_OWNER'; end if;
-  insert into public.workspace_members (workspace_id, user_id, role)
-  values (target_workspace_id, auth.uid(), 'viewer') on conflict do nothing;
-  return query select target_workspace_id, target_name;
-end;
-$$;
-
-revoke all on function public.join_workspace(text) from public;
-revoke all on function public.join_workspace(text) from anon;
-grant execute on function public.join_workspace(text) to authenticated;
 
 create or replace function public.join_team(invite_token text, member_position text default '')
 returns uuid
